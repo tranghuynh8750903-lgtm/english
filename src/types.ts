@@ -134,6 +134,10 @@ export interface UserProfile {
   targetFocusSkills?: string[];
   dailyStudyGoalMinutes?: number;
   streakDays: number;
+  longestStreak?: number;
+  lastStudiedDate?: string;
+  studyDatesHistory?: string[];
+  dailyLessonsCompletedToday?: number;
   xp: number;
   frequentMistakes: string[];
   createdAt: string;

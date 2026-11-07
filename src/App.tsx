@@ -73,6 +73,9 @@ import { PracticeHub } from './components/PracticeHub';
 import { FlashcardHub } from './components/FlashcardHub';
 import { VocabGame } from './components/VocabGame';
 import { NotificationsView, ProfileView } from './components/ProfileAndProgress';
+import { DailyStreakModal } from './components/DailyStreakModal';
+import { StreakCelebrationToast } from './components/StreakCelebrationToast';
+import { calculateStreakOnLessonCompleted } from './utils/streakUtils';
 
 const GUEST_PROFILE_KEY = 'englishhub_guest_profile_v2';
 const GUEST_ATTEMPTS_KEY = 'englishhub_guest_attempts_v2';
@@ -91,13 +94,17 @@ function loadGuestProfile(): UserProfile {
     uid: 'guest-user',
     displayName: 'Học viên (Khách)',
     photoURL: '',
-    bio: 'Đang trải nghiệm EnglishHub AI chế độ Khách không cần đăng nhập.',
+    bio: 'Đang trải nghiệm EnglishHub chế độ Khách không cần đăng nhập.',
     learningMode: 'IELTS',
     targetScore: 'IELTS 8.0',
     targetDeadline: '',
     targetFocusSkills: ['Grammar (Ngữ pháp)', 'Vocabulary (Từ vựng)'],
     dailyStudyGoalMinutes: 30,
     streakDays: 1,
+    longestStreak: 1,
+    lastStudiedDate: '',
+    dailyLessonsCompletedToday: 0,
+    studyDatesHistory: [],
     xp: 0,
     frequentMistakes: [],
     createdAt: new Date().toISOString(),
@@ -158,6 +165,13 @@ export default function App() {
   });
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showExplorer, setShowExplorer] = useState(true);
+  const [showStreakModal, setShowStreakModal] = useState(false);
+  const [streakToast, setStreakToast] = useState<{
+    show: boolean;
+    streakDays: number;
+    message: string;
+    bonusXP?: number;
+  }>({ show: false, streakDays: 1, message: '' });
 
   // Save VS Code mode preference
   useEffect(() => {
@@ -216,6 +230,10 @@ export default function App() {
                 ],
                 dailyStudyGoalMinutes: guest.dailyStudyGoalMinutes || 30,
                 streakDays: Math.max(1, guest.streakDays || 1),
+                longestStreak: Math.max(1, guest.longestStreak || guest.streakDays || 1),
+                lastStudiedDate: guest.lastStudiedDate || '',
+                dailyLessonsCompletedToday: guest.dailyLessonsCompletedToday || 0,
+                studyDatesHistory: guest.studyDatesHistory || [],
                 xp: guest.xp || 0,
                 frequentMistakes: guest.frequentMistakes || [],
                 createdAt: new Date().toISOString(),
@@ -692,6 +710,54 @@ export default function App() {
     }
   };
 
+  const handleRecordDailyStudy = (activity: string = 'practice') => {
+    const { updatedProfile, isNewStreakDay, streakIncremented, bonusXP } =
+      calculateStreakOnLessonCompleted(profile);
+
+    setProfile(updatedProfile);
+
+    // Save to guest or firebase
+    if (!firebaseUser) {
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(GUEST_PROFILE_KEY, JSON.stringify(updatedProfile));
+        } catch {
+          // ignore
+        }
+      }
+    } else {
+      updateDoc(doc(db, 'users', firebaseUser.uid), {
+        streakDays: updatedProfile.streakDays,
+        longestStreak: updatedProfile.longestStreak,
+        lastStudiedDate: updatedProfile.lastStudiedDate,
+        dailyLessonsCompletedToday: updatedProfile.dailyLessonsCompletedToday,
+        studyDatesHistory: updatedProfile.studyDatesHistory,
+        xp: updatedProfile.xp,
+      }).catch((err) => {
+        console.error('Error syncing streak to Firestore:', err);
+      });
+    }
+
+    if (isNewStreakDay) {
+      const activityLabels: Record<string, string> = {
+        game: 'Trò chơi từ vựng',
+        flashcards: 'Ôn tập Flashcard',
+        write: 'Bài viết & Kiểm tra lỗi',
+        practice: 'Luyện đề trắc nghiệm',
+      };
+      const activityName = activityLabels[activity] || 'Bài học tiếng Anh';
+
+      setStreakToast({
+        show: true,
+        streakDays: updatedProfile.streakDays,
+        message: streakIncremented
+          ? `Xuất sắc! Bạn vừa hoàn thành 1 bài học (${activityName}) và nối dài chuỗi lên ${updatedProfile.streakDays} ngày liên tiếp!`
+          : `Bạn đã hoàn thành 1 bài học (${activityName}) hôm nay. Hãy duy trì học mỗi ngày nhé!`,
+        bonusXP,
+      });
+    }
+  };
+
   const activeFrequentMistakes = profile
     ? profile.frequentMistakes
     : localMistakes;
@@ -712,7 +778,7 @@ export default function App() {
     badge?: number;
   }[] = [
     { id: 'home', label: 'Home', emoji: '🏠', icon: Home },
-    { id: 'write', label: 'Write & AI Sửa Bài', emoji: '✍️', icon: PenTool },
+    { id: 'write', label: 'Write & Sửa Lỗi', emoji: '✍️', icon: PenTool },
     { id: 'flashcards', label: 'Flashcard Từ vựng', emoji: '🗂️', icon: Layers },
     { id: 'practice', label: 'Practice', emoji: '📚', icon: BookOpen },
     { id: 'game', label: 'Game Từ vựng', emoji: '🎮', icon: Gamepad2 },
@@ -737,6 +803,7 @@ export default function App() {
           onRequestAuth={() => setShowAuthModal(true)}
           onPublishPost={handlePublishPost}
           onRecordMistakes={handleRecordMistakes}
+          onRecordDailyStudy={handleRecordDailyStudy}
           initialDraft={writeStudioDraft}
         />
       )}
@@ -747,6 +814,7 @@ export default function App() {
           onModeChange={handleModeChange}
           frequentMistakes={activeFrequentMistakes}
           onCompleteAttempt={handleCompleteAttempt}
+          onRecordDailyStudy={handleRecordDailyStudy}
         />
       )}
 
@@ -756,6 +824,7 @@ export default function App() {
           targetScore={currentDisplayTarget}
           onModeChange={handleModeChange}
           onAwardXP={handleAwardXP}
+          onRecordDailyStudy={handleRecordDailyStudy}
         />
       )}
 
@@ -765,6 +834,7 @@ export default function App() {
           targetScore={currentDisplayTarget}
           onModeChange={handleModeChange}
           onAwardXP={handleAwardXP}
+          onRecordDailyStudy={handleRecordDailyStudy}
         />
       )}
 
@@ -911,6 +981,7 @@ export default function App() {
           onSignOut={handleSignOut}
           onUpdateProfile={handleUpdateProfile}
           onGoToMistakeDrill={() => setActiveNav('practice')}
+          onOpenStreakModal={() => setShowStreakModal(true)}
         />
       )}
     </>
@@ -935,7 +1006,7 @@ export default function App() {
                 E
               </div>
               <h2 className="text-xl font-bold text-[#18181B] pt-1">
-                Đăng nhập vào EnglishHub AI
+                Đăng nhập vào EnglishHub
               </h2>
               <p className="text-xs text-[#57534E] leading-relaxed">
                 Đăng nhập bằng Google hoặc Facebook để đăng bài, lưu bài viết và thiết lập mục tiêu cá nhân.
@@ -1009,6 +1080,7 @@ export default function App() {
           onOpenAuth={() => setShowAuthModal(true)}
           onExitVSCode={() => setVsCodeMode(false)}
           onOpenCommandPalette={() => setShowCommandPalette(true)}
+          onOpenStreakModal={() => setShowStreakModal(true)}
         >
           {renderMainContent()}
         </VSCodeLayout>
@@ -1016,7 +1088,7 @@ export default function App() {
         <div className="min-h-screen bg-[#FAF8F5] text-[#18181B] flex flex-col md:flex-row">
           {/* LEFT SIDEBAR NAVIGATION */}
           <aside className="w-full md:w-64 lg:w-72 border-b md:border-b-0 md:border-r border-[#E6E1D6] bg-[#FAF8F5] md:sticky md:top-0 md:h-screen flex flex-col justify-between p-4 md:p-5 shrink-0 overflow-y-auto">
-        <div className="space-y-5">
+        <div className="space-y-4">
           {/* Brand Header */}
           <div className="flex items-center justify-between">
             <div
@@ -1028,7 +1100,7 @@ export default function App() {
               </div>
               <div>
                 <div className="font-editorial font-bold text-lg leading-none text-[#18181B]">
-                  EnglishHub AI
+                  EnglishHub
                 </div>
                 <div className="text-[11px] font-medium text-[#6E6A63] mt-0.5">
                   TOEIC 800+ & IELTS 8.0
@@ -1036,6 +1108,36 @@ export default function App() {
               </div>
             </div>
           </div>
+
+          {/* Daily Streak Interactive Trigger Widget */}
+          <button
+            type="button"
+            onClick={() => setShowStreakModal(true)}
+            className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-[#FFFBEB] via-[#FEF3C7] to-[#FED7AA] border border-[#FDE68A] hover:border-[#F59E0B] transition cursor-pointer text-left shadow-2xs group"
+            title="Xem chuỗi ngày học tập và thử thách"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🔥</span>
+              <div>
+                <div className="text-xs font-black text-[#92400E] flex items-center gap-1.5">
+                  <span>Chuỗi {profile.streakDays || 1} ngày</span>
+                  {(profile.dailyLessonsCompletedToday || 0) >= 1 && (
+                    <span className="text-[9px] bg-[#059669] text-white px-1.5 py-0.2 rounded font-bold">
+                      ✓ Đã học
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] text-[#B45309]">
+                  {(profile.dailyLessonsCompletedToday || 0) >= 1
+                    ? 'Chuỗi hôm nay đã được bảo toàn'
+                    : 'Học 1 bài hôm nay để giữ chuỗi'}
+                </div>
+              </div>
+            </div>
+            <span className="text-xs font-bold text-[#B45309] group-hover:translate-x-0.5 transition-transform">
+              →
+            </span>
+          </button>
 
           {/* VS Code Mode & Command Palette Trigger */}
           <div className="flex items-center gap-1.5">
@@ -1223,6 +1325,31 @@ export default function App() {
     onSignOut={handleSignOut}
     currentScore={currentDisplayTarget}
   />
+
+  {/* DAILY STREAK MODAL */}
+  <DailyStreakModal
+    isOpen={showStreakModal}
+    onClose={() => setShowStreakModal(false)}
+    profile={profile}
+    onNavigate={(nav) => {
+      setActiveNav(nav);
+      setShowStreakModal(false);
+    }}
+  />
+
+  {/* STREAK CELEBRATION TOAST */}
+  {streakToast.show && (
+    <StreakCelebrationToast
+      streak={streakToast.streakDays}
+      message={streakToast.message}
+      bonusXP={streakToast.bonusXP || 0}
+      onClose={() => setStreakToast((prev) => ({ ...prev, show: false }))}
+      onOpenStreakModal={() => {
+        setStreakToast((prev) => ({ ...prev, show: false }));
+        setShowStreakModal(true);
+      }}
+    />
+  )}
 </>
 );
 }

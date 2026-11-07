@@ -21,6 +21,7 @@ interface VocabGameProps {
   targetScore: string;
   onModeChange: (mode: LearningMode) => void;
   onAwardXP: (amount: number) => void;
+  onRecordDailyStudy?: (activity: string) => void;
 }
 
 const DEFAULT_MATCH_PAIRS: Record<LearningMode, VocabGamePair[]> = {
@@ -183,6 +184,7 @@ export const VocabGame: React.FC<VocabGameProps> = ({
   targetScore,
   onModeChange,
   onAwardXP,
+  onRecordDailyStudy,
 }) => {
   const [gameMode, setGameMode] = useState<'match' | 'sprint'>('match');
   const [score, setScore] = useState(0);
@@ -191,7 +193,6 @@ export const VocabGame: React.FC<VocabGameProps> = ({
   const [timeLeft, setTimeLeft] = useState(60);
   const [isGameActive, setIsGameActive] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
-  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
   // Match Game state
   const [tiles, setTiles] = useState<Tile[]>([]);
@@ -288,9 +289,12 @@ export const VocabGame: React.FC<VocabGameProps> = ({
   const handleGameOver = () => {
     setIsGameActive(false);
     setIsGameOver(true);
-    const xpEarned = Math.round(score / 5) + (maxCombo * 5);
+    const xpEarned = Math.round(score / 5) + maxCombo * 5;
     if (xpEarned > 0) {
       onAwardXP(xpEarned);
+    }
+    if (onRecordDailyStudy) {
+      onRecordDailyStudy('game');
     }
   };
 
@@ -403,29 +407,16 @@ export const VocabGame: React.FC<VocabGameProps> = ({
     }
   };
 
-  const handleGenerateAIPairs = async () => {
-    setIsGeneratingAI(true);
-    try {
-      const res = await fetch('/api/ai/generate-vocab-game', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: learningMode, gameType: gameMode }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (gameMode === 'match' && Array.isArray(data) && data.length > 0) {
-          setMatchPairs(data);
-          initMatchTiles(data);
-          resetGame();
-        } else if (gameMode === 'sprint' && Array.isArray(data) && data.length > 0) {
-          setSprintQuestions(data);
-          resetGame();
-        }
-      }
-    } catch (err) {
-      console.error('Error generating game challenge:', err);
-    } finally {
-      setIsGeneratingAI(false);
+  const handleShuffleWords = () => {
+    if (gameMode === 'match') {
+      const shuffled = [...matchPairs].sort(() => Math.random() - 0.5);
+      setMatchPairs(shuffled);
+      initMatchTiles(shuffled);
+      resetGame();
+    } else {
+      const shuffled = [...sprintQuestions].sort(() => Math.random() - 0.5);
+      setSprintQuestions(shuffled);
+      resetGame();
     }
   };
 
@@ -479,13 +470,12 @@ export const VocabGame: React.FC<VocabGameProps> = ({
 
           <button
             type="button"
-            onClick={handleGenerateAIPairs}
-            disabled={isGeneratingAI}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#D6D1C7] bg-white hover:bg-[#FAF8F5] text-xs font-bold text-[#18181B] transition cursor-pointer disabled:opacity-50"
-            title="Sinh câu hỏi game ngẫu nhiên bằng Gemini 3.8 Flash"
+            onClick={handleShuffleWords}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#D6D1C7] bg-white hover:bg-[#FAF8F5] text-xs font-bold text-[#18181B] transition cursor-pointer"
+            title="Xáo trộn lại bộ từ vựng luyện tập"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#D97706]" />
-            {isGeneratingAI ? 'Đang tạo...' : '🎲 Đổi đề mới bằng AI'}
+            🎲 Xáo trộn thẻ mới
           </button>
         </div>
       </div>
@@ -646,12 +636,11 @@ export const VocabGame: React.FC<VocabGameProps> = ({
             </button>
             <button
               type="button"
-              onClick={handleGenerateAIPairs}
-              disabled={isGeneratingAI}
+              onClick={handleShuffleWords}
               className="w-full flex-1 py-3 px-4 rounded-xl border border-[#D6D1C7] bg-white hover:bg-[#FAF8F5] text-[#18181B] font-bold text-sm flex items-center justify-center gap-2 cursor-pointer transition"
             >
               <Sparkles className="w-4 h-4 text-[#D97706]" />
-              Đổi bộ từ vựng mới (AI)
+              Xáo trộn bộ từ vựng mới
             </button>
           </div>
         </div>

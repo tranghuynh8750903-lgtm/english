@@ -93,12 +93,12 @@ export const HomeFeed: React.FC<HomeFeedProps> = ({
           <h1 className="text-2xl md:text-3xl font-bold text-[#18181B] mt-1">
             {isSavedView
               ? 'Bài viết bạn đã lưu'
-              : 'Bảng tin Cộng đồng EnglishHub AI'}
+              : 'Bảng tin Cộng đồng EnglishHub'}
           </h1>
           <p className="text-sm text-[#57534E] mt-1">
             {isSavedView
               ? 'Ôn tập lại các bài viết, lỗi ngữ pháp (❌ → ✅) và từ vựng nâng cao bạn đã đánh dấu.'
-              : 'Nơi người học chia sẻ bài viết tiếng Anh thật và cùng học hỏi từ phần sửa lỗi chi tiết của AI.'}
+              : 'Nơi người học chia sẻ bài viết tiếng Anh thật và cùng học hỏi từ phần sửa lỗi chi tiết theo mục tiêu.'}
           </p>
         </div>
 

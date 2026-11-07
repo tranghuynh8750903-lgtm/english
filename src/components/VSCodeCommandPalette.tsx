@@ -99,8 +99,8 @@ export const VSCodeCommandPalette: React.FC<VSCodeCommandPaletteProps> = ({
     },
     {
       id: 'nav-write',
-      title: 'Mở Write & AI Inspection Studio (WriteStudio.md)',
-      detail: 'Soạn thảo bài viết và AI phân tích ngữ pháp, từ vựng chuẩn band',
+      title: 'Mở Write & Grammar Studio (WriteStudio.md)',
+      detail: 'Soạn thảo bài viết và phân tích ngữ pháp, từ vựng chuẩn mục tiêu',
       category: 'Navigation',
       icon: <PenTool className="w-4 h-4 text-[#569CD6]" />,
       shortcut: 'W',

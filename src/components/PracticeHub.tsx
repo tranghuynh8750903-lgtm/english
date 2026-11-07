@@ -38,6 +38,7 @@ interface PracticeHubProps {
     estimatedBandOrScore: string;
     mistakesLogged: string[];
   }) => Promise<void>;
+  onRecordDailyStudy?: (activity: string) => void;
 }
 
 const TOEIC_CATEGORIES: TOEICCategory[] = [
@@ -62,6 +63,7 @@ export const PracticeHub: React.FC<PracticeHubProps> = ({
   onModeChange,
   frequentMistakes,
   onCompleteAttempt,
+  onRecordDailyStudy,
 }) => {
   const categories = learningMode === 'TOEIC' ? TOEIC_CATEGORIES : IELTS_CATEGORIES;
   const [selectedCategory, setSelectedCategory] = useState<string>(categories[0]);
@@ -117,7 +119,9 @@ export const PracticeHub: React.FC<PracticeHubProps> = ({
   const activeQuestions: PracticeQuestion[] =
     selectedCategory === 'AI Mistake Drill'
       ? customAiModule?.questions || []
-      : generatedQuestionsByCat[moduleKey] || [];
+      : generatedQuestionsByCat[moduleKey] && generatedQuestionsByCat[moduleKey].length > 0
+      ? generatedQuestionsByCat[moduleKey]
+      : baseModule?.questions || [];
 
   const handleCategoryClick = (cat: string) => {
     setSelectedCategory(cat);
@@ -139,10 +143,15 @@ export const PracticeHub: React.FC<PracticeHubProps> = ({
         ...prev,
         [moduleKey]: qs,
       }));
-    } catch (err) {
-      setErrorMsg(
-        err instanceof Error ? err.message : 'Không thể tạo câu hỏi lúc này.'
-      );
+    } catch {
+      // Graceful fallback: shuffle standard questions so the student is never blocked
+      if (baseModule?.questions && baseModule.questions.length > 0) {
+        const shuffled = [...baseModule.questions].sort(() => Math.random() - 0.5);
+        setGeneratedQuestionsByCat((prev) => ({
+          ...prev,
+          [moduleKey]: shuffled,
+        }));
+      }
     } finally {
       setIsGeneratingSkillQuiz(false);
     }
@@ -257,6 +266,8 @@ export const PracticeHub: React.FC<PracticeHubProps> = ({
       estimatedBandOrScore: estimated,
       mistakesLogged: newMistakes,
     });
+
+    onRecordDailyStudy?.('practice');
   };
 
   const handleEvaluateWritingOrSpeaking = async () => {
@@ -281,6 +292,7 @@ export const PracticeHub: React.FC<PracticeHubProps> = ({
         estimatedBandOrScore: result.score,
         mistakesLogged: result.keyFixes.map((f) => `${f.wrong} → ${f.right}`),
       });
+      onRecordDailyStudy?.('practice');
     } catch (err) {
       setErrorMsg(
         err instanceof Error ? err.message : 'Không thể chấm bài lúc này.'
@@ -304,7 +316,7 @@ export const PracticeHub: React.FC<PracticeHubProps> = ({
             Chế độ luyện tập {learningMode === 'TOEIC' ? 'TOEIC 800+' : 'IELTS 8.0'}
           </h1>
           <p className="text-sm text-[#57534E] mt-1">
-            AI trực tiếp tạo câu hỏi luyện tập theo kỹ năng hoặc từ những lỗi thực tế của riêng bạn.
+            Hệ thống câu hỏi luyện tập chuyên sâu theo từng kỹ năng và mục tiêu điểm số.
           </p>
         </div>
 
@@ -436,10 +448,10 @@ export const PracticeHub: React.FC<PracticeHubProps> = ({
               >
                 <Sparkles className="w-4 h-4" />
                 {isGeneratingSkillQuiz
-                  ? 'AI đang biên soạn câu hỏi...'
+                  ? 'Đang chuẩn bị câu hỏi...'
                   : activeQuestions.length > 0
-                  ? 'Tạo bộ câu hỏi mới bằng AI'
-                  : `🤖 AI Tạo Đề Luyện ${baseModule.category}`}
+                  ? 'Đổi bộ câu hỏi luyện tập'
+                  : `Làm đề luyện ${baseModule.category}`}
               </button>
             )}
           </div>

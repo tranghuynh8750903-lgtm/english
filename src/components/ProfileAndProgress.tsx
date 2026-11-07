@@ -15,6 +15,7 @@ import {
   Calendar,
   Clock,
   BookOpen,
+  Flame,
 } from 'lucide-react';
 import {
   LearningMode,
@@ -35,6 +36,7 @@ interface ProfileViewProps {
   onSignOut: () => void;
   onUpdateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   onGoToMistakeDrill: () => void;
+  onOpenStreakModal?: () => void;
 }
 
 const COMMON_TARGETS = {
@@ -62,6 +64,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onSignOut,
   onUpdateProfile,
   onGoToMistakeDrill,
+  onOpenStreakModal,
 }) => {
   const [subTab, setSubTab] = useState<'posts' | 'scores' | 'progress' | 'target'>('progress');
   const [isEditingName, setIsEditingName] = useState(false);
@@ -94,6 +97,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     learningMode: targetMode,
     targetScore: customTargetScore,
     streakDays: 1,
+    longestStreak: 1,
+    lastStudiedDate: '',
+    dailyLessonsCompletedToday: 0,
+    studyDatesHistory: [],
     xp: 0,
     frequentMistakes: [],
     createdAt: new Date().toISOString(),
@@ -377,6 +384,40 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   {currentProfile.xp} XP
                 </div>
               </div>
+            </div>
+
+            {/* Daily Streak Highlight Card */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-[#FFFBEB] via-[#FEF3C7] to-[#FED7AA] border border-[#FDE68A] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-[#F59E0B] text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Flame className="w-7 h-7 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-extrabold text-[#78350F]">
+                      Chuỗi học tập: {currentProfile.streakDays || 1} ngày liên tiếp
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FEF3C7] text-[#B45309] border border-[#FDE68A]">
+                      Kỷ lục: {currentProfile.longestStreak || currentProfile.streakDays || 1}d
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#92400E] mt-0.5">
+                    {(currentProfile.dailyLessonsCompletedToday || 0) >= 1
+                      ? '🎉 Đã hoàn thành ít nhất 1 bài học hôm nay! Chuỗi được bảo toàn.'
+                      : '⚡ Học ít nhất 1 bài (từ vựng, viết hoặc trắc nghiệm) để duy trì chuỗi hôm nay.'}
+                  </p>
+                </div>
+              </div>
+
+              {onOpenStreakModal && (
+                <button
+                  type="button"
+                  onClick={onOpenStreakModal}
+                  className="px-3.5 py-2 rounded-lg bg-[#B45309] hover:bg-[#92400E] text-white text-xs font-bold transition shrink-0 cursor-pointer shadow-2xs"
+                >
+                  Chi tiết chuỗi →
+                </button>
+              )}
             </div>
 
             {/* Target reminder card */}

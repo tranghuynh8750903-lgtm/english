@@ -25,6 +25,7 @@ interface FlashcardHubProps {
   targetScore: string;
   onModeChange: (mode: LearningMode) => void;
   onAwardXP: (amount: number) => void;
+  onRecordDailyStudy?: (activity: string) => void;
 }
 
 const STORAGE_KEY = 'englishhub_flashcards_progress_v2';
@@ -35,6 +36,7 @@ export const FlashcardHub: React.FC<FlashcardHubProps> = ({
   targetScore,
   onModeChange,
   onAwardXP,
+  onRecordDailyStudy,
 }) => {
   const [cards, setCards] = useState<FlashcardItem[]>(() => {
     let custom: FlashcardItem[] = [];
@@ -140,6 +142,7 @@ export const FlashcardHub: React.FC<FlashcardHubProps> = ({
     if (mastered) {
       onAwardXP(15);
     }
+    onRecordDailyStudy?.('flashcards');
     handleNextCard();
   };
 
@@ -694,6 +697,7 @@ export const FlashcardHub: React.FC<FlashcardHubProps> = ({
                     if (isCorrect) {
                       onAwardXP(10);
                     }
+                    onRecordDailyStudy?.('flashcards');
                   }}
                   className={`w-full p-4 rounded-xl border text-sm text-left transition flex items-center justify-between cursor-pointer ${style}`}
                 >

@@ -29,7 +29,7 @@ export interface VSCodeFileItem {
 
 export const VSCODE_FILES: VSCodeFileItem[] = [
   { id: 'home', file: 'FeedCommunity.tsx', ext: 'tsx', color: '#3178C6', label: 'Bảng tin Cộng đồng' },
-  { id: 'write', file: 'WriteStudio.md', ext: 'md', color: '#569CD6', label: 'Write & AI Studio' },
+  { id: 'write', file: 'WriteStudio.md', ext: 'md', color: '#569CD6', label: 'Write & Grammar Studio' },
   { id: 'flashcards', file: 'VocabFlashcards.deck', ext: 'deck', color: '#4EC9B0', label: 'Flashcard Từ vựng' },
   { id: 'game', file: 'VocabGame.py', ext: 'py', color: '#DCDCAA', label: 'Trò chơi Từ vựng' },
   { id: 'practice', file: 'PracticeQuestions.quiz', ext: 'quiz', color: '#CE9178', label: 'Luyện đề Mục tiêu' },
@@ -54,6 +54,7 @@ interface VSCodeLayoutProps {
   onOpenAuth: () => void;
   onExitVSCode: () => void;
   onOpenCommandPalette: () => void;
+  onOpenStreakModal?: () => void;
 }
 
 export const VSCodeLayout: React.FC<VSCodeLayoutProps> = ({
@@ -73,6 +74,7 @@ export const VSCodeLayout: React.FC<VSCodeLayoutProps> = ({
   onOpenAuth,
   onExitVSCode,
   onOpenCommandPalette,
+  onOpenStreakModal,
 }) => {
   const [showExplorer, setShowExplorer] = useState(true);
 
@@ -175,7 +177,7 @@ export const VSCodeLayout: React.FC<VSCodeLayoutProps> = ({
               className={`p-2 rounded cursor-pointer transition ${
                 activeNav === 'write' ? 'text-white border-l-2 border-[#007ACC]' : 'text-[#858585] hover:text-white'
               }`}
-              title="Write & AI Inspection Studio"
+              title="Write & Grammar Studio"
             >
               <PenTool className="w-5 h-5 text-[#569CD6]" />
             </button>
@@ -228,7 +230,7 @@ export const VSCodeLayout: React.FC<VSCodeLayoutProps> = ({
                 <div className="flex items-center gap-1.5 px-2 py-1 text-[#CCCCCC] font-bold text-xs select-none">
                   <ChevronDown className="w-3.5 h-3.5 text-[#858585]" />
                   <FolderOpen className="w-3.5 h-3.5 text-[#DCDCAA]" />
-                  <span>ENGLISHHUB-AI</span>
+                  <span>ENGLISHHUB</span>
                 </div>
                 <div className="pl-4 space-y-0.5">
                   {VSCODE_FILES.map((file) => {
@@ -313,7 +315,7 @@ export const VSCodeLayout: React.FC<VSCodeLayoutProps> = ({
               {frequentMistakes.length > 0 && (
                 <div className="space-y-1">
                   <div className="flex items-center justify-between px-2 text-[10px] font-bold uppercase tracking-wider text-[#858585]">
-                    <span>AI Mistakes ({frequentMistakes.length})</span>
+                    <span>Recorded Mistakes ({frequentMistakes.length})</span>
                   </div>
                   <div className="space-y-1">
                     {frequentMistakes.slice(0, 3).map((m, idx) => (
@@ -397,7 +399,7 @@ export const VSCodeLayout: React.FC<VSCodeLayoutProps> = ({
 
           {/* Breadcrumbs */}
           <div className="h-6 bg-[#1E1E1E] px-4 flex items-center text-[11px] text-[#858585] border-b border-[#2D2D2D] shrink-0">
-            <span>englishhub-ai</span>
+            <span>englishhub</span>
             <span className="mx-1">&gt;</span>
             <span>src</span>
             <span className="mx-1">&gt;</span>
@@ -427,7 +429,13 @@ export const VSCodeLayout: React.FC<VSCodeLayoutProps> = ({
             <span>0 ❌</span>
           </span>
           <span className="hidden sm:inline">🎯 {targetScore}</span>
-          <span className="hidden md:inline">🔥 {streakDays}d streak</span>
+          <span
+            onClick={onOpenStreakModal}
+            className="hidden md:inline cursor-pointer hover:underline"
+            title="Xem chi tiết chuỗi học tập"
+          >
+            🔥 {streakDays}d streak
+          </span>
           <span className="hidden lg:inline">⚡ {xp} XP</span>
         </div>
         <div className="flex items-center gap-3">

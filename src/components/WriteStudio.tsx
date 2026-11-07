@@ -23,6 +23,7 @@ interface WriteStudioProps {
     aiResult: AIFeedbackResult | null;
   }) => Promise<void>;
   onRecordMistakes: (mistakes: string[]) => void;
+  onRecordDailyStudy?: (activity: string) => void;
   initialDraft?: { title: string; content: string; topicTag: string } | null;
 }
 
@@ -33,6 +34,7 @@ export const WriteStudio: React.FC<WriteStudioProps> = ({
   onRequestAuth,
   onPublishPost,
   onRecordMistakes,
+  onRecordDailyStudy,
   initialDraft,
 }) => {
   const [title, setTitle] = useState(initialDraft?.title || '');
@@ -68,6 +70,7 @@ export const WriteStudio: React.FC<WriteStudioProps> = ({
       if (result.detectedWeaknessTags?.length) {
         onRecordMistakes(result.detectedWeaknessTags);
       }
+      onRecordDailyStudy?.('write');
     } catch (err) {
       setErrorMessage(
         err instanceof Error ? err.message : 'Đã xảy ra lỗi khi phân tích bài viết.'
@@ -101,6 +104,7 @@ export const WriteStudio: React.FC<WriteStudioProps> = ({
         aiResult: currentAi,
       });
       setPublishSuccess(true);
+      onRecordDailyStudy?.('write');
     } catch (err) {
       setErrorMessage(
         err instanceof Error ? err.message : 'Không thể đăng bài viết lúc này.'
@@ -139,10 +143,10 @@ export const WriteStudio: React.FC<WriteStudioProps> = ({
             )}
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-[#18181B] mt-1">
-            Viết bài & Sửa lỗi tiếng Anh cùng AI
+            Viết bài & Kiểm tra Ngữ pháp Chuyên sâu
           </h1>
           <p className="text-sm text-[#57534E] mt-1">
-            Nhập bài viết thực tế của bạn để AI chấm điểm theo mục tiêu và giải thích chi tiết từng lỗi ngữ pháp, từ vựng.
+            Nhập bài viết thực tế của bạn để hệ thống chấm điểm theo mục tiêu và giải thích chi tiết từng lỗi ngữ pháp, từ vựng.
           </p>
         </div>
       </div>

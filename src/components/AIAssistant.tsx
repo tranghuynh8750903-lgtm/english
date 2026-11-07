@@ -306,7 +306,7 @@ Bạn có câu hỏi hoặc đoạn văn nào cần tôi phân tích ngay không
                     <span className="font-semibold">
                       {isUser
                         ? 'Bạn'
-                        : `EnglishHub AI (${
+                        : `EnglishHub Tutor (${
                             learningMode === 'IELTS' ? 'IELTS 8.0' : 'TOEIC 800+'
                           })`}
                     </span>
